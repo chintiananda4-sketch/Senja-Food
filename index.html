@@ -1,0 +1,1734 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Senja Food — Accounting Dashboard (Final)</title>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- html2canvas & jsPDF for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    /* Soft pastel theme + formal-journal styles */
+    :root{
+      --bg:#fbfdff; --card:#fff; --accent:#faaf93; --accent-2:#cfe9ff;
+      --muted:#6b7280; --danger:#ef4444; --success:#16a34a; --border:#e6eefc;
+      --shadow:0 6px 18px rgba(15,15,15,0.06);
+    }
+
+    html {
+  font-size: 16px; /* ukuran default untuk desktop */
+}
+
+@media (max-width: 480px) {
+  html {
+    font-size: 13px; /* otomatis mengecil di HP */
+  }
+
+  h1 {
+    font-size: 1.4rem;
+  }
+
+  h2 {
+    font-size: 1.2rem;
+  }
+
+  h3 {
+    font-size: 1.05rem;
+  }
+
+  p, td, th, label, input, button, select {
+    font-size: 0.9rem;
+  }
+}
+body {
+  font-size: clamp(14px, 3.5vw, 16px);
+}
+
+@media (max-width: 480px) {
+/* Judul neraca mengecil */
+  #neraca h2 {
+    font-size: 1.1rem !important;
+    text-align: center;
+  }
+
+  /* Judul subbagian (Aset, Kewajiban, Ekuitas) */
+  #neraca h3 {
+    font-size: 1rem !important;
+    margin-bottom: 6px;
+    margin-top: 10px;
+  }
+
+  /* Kolom kiri dan kanan ditumpuk biar tidak sempit */
+  #neraca .two-col {
+    display: block !important;
+  }
+
+  /* Setiap blok diberi jarak */
+  #neraca .two-col > div {
+    margin-bottom: 18px;
+  }
+
+  /* Ukuran list item */
+  #neraca .account-list li {
+    font-size: 0.85rem !important;
+    padding: 6px 0;
+  }
+
+  /* Total-bar juga ikut mengecil */
+  #neraca .total-line {
+    font-size: 0.9rem !important;
+    padding-top: 6px;
+  }
+  /* ============================
+        FONT BUKU BESAR
+     ============================ */
+  #bukubesar table th,
+  #bukubesar table td {
+    font-size: 0.85rem;
+    padding: 6px;
+  }
+
+  #bukubesar h2 {
+    font-size: 1.05rem;
+  }
+
+  #ledger-account {
+    font-size: 0.9rem !important;
+  }
+
+  /* ============================
+        FONT NERACA SALDO
+     ============================ */
+  #trial table th,
+  #trial table td {
+    font-size: 0.85rem;
+    padding: 6px;
+  }
+
+  #trial h2 {
+    font-size: 1.05rem;
+  }
+
+  /* Header tabel juga diperkecil */
+  #trial .table th {
+    font-size: 0.85rem;
+  }
+
+  /* ============================
+        SUPAYA TABEL TIDAK MELEBAR
+     ============================ */
+  #bukubesar table,
+  #trial table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width:480px) {
+  .topbar h1 {
+    font-size: 1.1rem !important;  /* ukuran lebih kecil untuk HP */
+  }
+
+  .muted {
+    font-size: 0.75rem !important;
+  }
+}
+
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;background:var(--bg);color:#111}
+    .app{max-width:1180px;margin:18px auto;padding:16px}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+    .brand{display:flex;gap:10px;align-items:center}
+    .logo{
+  width:60px;
+  height:55px;
+  border-radius:3px;
+
+  background: url("foto1.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+    h1{margin:0;color:var(--accent);font-size:1.4rem}
+    .muted{color:var(--muted);font-size:0.9rem}
+    .nav{display:flex;gap:8px;margin:14px 0;flex-wrap:wrap}
+    .tab-btn{padding:8px 12px;border-radius:10px;border:1px solid transparent;background:transparent;cursor:pointer;font-weight:600}
+    .tab-btn.active{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#03396c;border-color:rgba(3,57,108,0.08)}
+    main{min-height:60vh}
+    .card{background:var(--card);padding:14px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:12px}
+    .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px}
+    .big-number{font-size:1.3rem;color:#ffbfa8;font-weight:800}
+    .form-row{margin-bottom:10px;display:flex;flex-direction:column}
+    label{font-weight:700;margin-bottom:6px;color:#0f172a}
+    input[type="text"],input[type="date"],input[type="number"],select,input[type="month"]{
+      padding:9px;border-radius:10px;border:1px solid var(--border);background:#fbfdff;font-size:14px
+    }
+    button{padding:10px 12px;border-radius:10px;border:0;cursor:pointer}
+    button.primary{background:#4caf50;color:white} /* hijau lembut untuk Save */
+    button.ghost{background:transparent;border:1px solid var(--border)}
+    button.small{padding:8px;border-radius:8px;border:1px solid var(--border);background:#fff}
+    button.danger{background:var(--danger);color:white}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .totals{display:flex;gap:22px;margin-top:12px;font-weight:800;color:#ffbfa8}
+    .msg{margin-top:8px;font-weight:700}
+    .msg.error{color:var(--danger)}
+    .msg.ok{color:var(--success)}
+    .table{width:100%;border-collapse:collapse;margin-top:10px}
+    .table th,.table td{border:1px solid #eef6ff;padding:8px;text-align:left;vertical-align:middle}
+    .table th{background:linear-gradient(180deg,#eff8ff,#f7fbff);color:#f47c51a7}
+    .kredit{padding-left:30px;color:#4b5563}
+    .recent{background:#e6ffef !important}
+    .two-col{display:flex;gap:24px;flex-wrap:wrap}
+    .account-list{list-style:none;padding:0;margin:6px 0}
+    .account-list li{padding:10px;border-bottom:1px dashed #f0f6ff;display:flex;justify-content:space-between}
+    .total-line{font-weight:900;margin-top:8px}
+    .mini{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed #eee}
+    .foot{text-align:center;color:var(--muted);margin-top:12px;padding-bottom:20px}
+    .tab{display:none}
+    .tab.active{display:block}
+    /* Formal journal vertical style specifics */
+    .journal-table{width:100%;border-collapse:collapse;margin-top:6px}
+    .journal-date{width:120px}
+    .journal-ref{width:80px;text-align:center;color:var(--muted);font-size:0.9rem}
+    .journal-perkiraan{width:auto}
+    .journal-amount{width:150px;text-align:right}
+    .indent-credit{padding-left:28px}
+    /* small pie */
+    .chart-small{height:120px !important; max-width:260px}
+    @media (max-width:920px){
+      .grid-3{grid-template-columns:1fr;gap:10px}
+    }
+    #login-page { display: flex; }  
+    .app { display: none; }
+    /* ===== LOGIN PAGE WITH SEBLAK BACKGROUND ===== */
+#login-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+
+  /* Ganti URL gambar dengan milik kamu */
+  background: url('foto4.png') no-repeat center center/cover;
+
+  /* overlay peach lembut */
+  background-blend-mode: overlay;
+  background-color: rgba(255, 196, 160, 0.55);
+  font-family: "Times New Roman", serif;
+}
+
+/* Kartu login */
+.login-card {
+  width: 330px;
+  padding: 25px;
+  background: rgba(255, 244, 238, 0.9);
+  border-radius: 15px;
+  box-shadow: 0 6px 25px rgba(0,0,0,0.18);
+  text-align: center;
+  backdrop-filter: blur(3px);
+}
+
+.login-card h2 {
+  margin-bottom: 20px;
+  color: #6b3e2e;
+  font-weight: bold;
+}
+
+/* Input */
+.login-card input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  border: 1px solid #d9b8aa;
+  font-size: 16px;
+  background: #fffdfb;
+}
+
+/* Tombol */
+#login-btn {
+  width: 100%;
+  padding: 12px;
+  background: #ffbfa8;
+  color: #663b2f;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.25s;
+  font-size: 16px;
+}
+
+#login-btn:hover {
+  background: #ff9f80;
+}
+
+/* Pesan gagal */
+#login-msg {
+  margin-top: 10px;
+  font-weight: bold;
+  color: red;
+}
+
+/* Sembunyikan dashboard sebelum login */
+.app {
+  display:none;
+}
+
+.logout {
+  background: #ff8d7b;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+  margin-left: auto;
+}
+
+.logout:hover {
+  background: #ff705d;
+}
+
+#neraca .card {
+  max-width: 1300px;    /* batasi lebar neraca */
+  margin: 0 auto;      /* center secara horizontal */
+}
+
+#neraca .two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+}
+
+#neraca h2 {
+  text-align: center;
+}
+#login-page {
+  display: flex;
+  justify-content: center;   /* rata tengah horizontal */
+  align-items: center;       /* rata tengah vertical */
+  height: 100vh;             /* penuh 1 layar */
+  padding: 20px;
+}
+
+/* ======== CENTER TITLE & DIAGRAM ======== */
+
+.chart-title {
+  text-align: center;
+  margin-bottom: 12px;
+  font-weight: bold;
+  color: #000000; /* warna opsional, bisa diganti */
+}
+
+.chart-center {
+  width: 100%;
+  display: flex;
+  justify-content: center; /* diagram ke tengah */
+  align-items: center;
+}
+
+#chartRevExp {
+  width: 350px !important;   /* ukuran donut */
+  height: 350px !important;  /* ukuran donut */
+}
+
+/* Wrapper card chart */
+.chart-wrapper {
+  width: 100%;             
+  display: flex;
+  flex-direction: column;
+}
+
+/* Tengah 100% */
+.chart-center {
+  width: 100%;
+  display: flex;
+  justify-content: center;   /* Center horizontal */
+  align-items: center;
+  padding: 10px 0;
+}
+
+/* Ukuran chart */
+#chartRevExp {
+  width: 330px !important;
+  height: 330px !important;
+}
+
+/* Container tetap kotak untuk menjaga chart tetap bulat */
+.chart-center {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Ukuran chart wajib persegi */
+#chartRevExp {
+  width: 340px !important;
+  height: 340px !important;
+  aspect-ratio: 1 / 1 !important;   /* memastikan bentuk bulat */
+}
+
+/* Wrapper card */
+.chart-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Container full width & center */
+.chart-full {
+  width: 100%;
+  display: flex;
+  justify-content: center;   /* center horizontal */
+  align-items: center;
+}
+
+/* Canvas full width dan tetap bulat */
+#chartRevExp {
+  width: 100% !important;       /* FULL lebar card */
+  max-width: 500px !important;  /* batas maksimal (biar tidak terlalu besar) */
+  aspect-ratio: 1 / 1 !important; /* pastikan bulat */
+}
+
+.tab {
+  display: none !important;       /* TAB tidak aktif hilang total */
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.tab.active {
+  display: block !important;      /* TAB aktif muncul normal */
+}
+
+.main-area section {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* ===========================
+    RESPONSIVE UNTUK HP
+   =========================== */
+@media (max-width: 480px) {
+
+  /* Agar keseluruhan layout tidak melebar */
+  body {
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Card jadi full width & tumpuk rapi */
+  .card {
+    width: 100% !important;
+    margin: 10px 0;
+  }
+
+  /* Text lebih kecil supaya tidak “lompat” */
+  h2, h3 {
+    font-size: 1.1rem;
+  }
+
+  /* Chart mengecil otomatis */
+  #chartRevExp {
+    width: 90% !important;
+    max-width: 280px !important;
+    aspect-ratio: 1/1 !important;
+  }
+
+  .chart-center,
+  .chart-full {
+    padding: 0;
+    justify-content: center;
+  }
+
+  /* Form-field rapi di HP */
+  input, select, button {
+    width: 100% !important;
+    font-size: 14px;
+  }
+
+  .form-row {
+    flex-direction: column !important;
+    gap: 6px !important;
+  }
+
+  /* Navigasi tab di atas */
+  nav {
+    flex-wrap: wrap;
+  }
+
+  nav button {
+    flex: 1 1 45%;
+    margin: 4px 0;
+    font-size: 13px;
+  }
+
+  /* Supaya konten tab tidak terdorong */
+  .tab {
+    padding-top: 0 !important;
+  }
+}
+
+@media (max-width: 480px) {
+
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .brand {
+    width: 100%;
+  }
+
+  .topbar > div:last-child {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .topbar input[type="month"],
+  .topbar button {
+    flex: 1 1 48%;
+    font-size: 12px;
+    padding: 8px;
+  }
+}
+
+.card.chart-wrapper {
+  position: relative;
+  overflow: hidden;
+  background-color: #ffffff;
+  background-size: cover;
+  background-position: center;
+}
+
+/* Overlay agar foto tampak samar */
+.card.chart-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.5); /* putih 50% → bisa kamu atur */
+  backdrop-filter: blur(2px);            /* membuat foto makin samar */
+  z-index: 1;
+}
+
+/* Supaya chart dan tulisannya tetap jelas */
+.card.chart-wrapper > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* ==== SIDEBAR BARU ==== */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 220px;
+  height: 100vh;
+  background: #ffffff;
+  border-right: 1px solid #e5e5e5;
+  padding-top: 80px; /* beri ruang untuk topbar */
+  transition: width 0.3s;
+  overflow: hidden;
+  z-index: 9000;
+}
+
+.sidebar.minimized {
+  width: 60px;
+}
+
+/* tombol toggle */
+.sidebar-toggle {
+  position: absolute;
+  top: 20px;
+  right: -18px;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  background: #ffbfa8;
+  color: black;         /* ← supaya kelihatan */
+  border: 2px solid #fff;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 9999;        /* ← tombol dijamin muncul */
+}
+
+/* tombol menu */
+.sidebar button {
+  width: 100%;
+  display: block;
+  padding: 12px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 15px;
+  color: #333;
+  transition: padding 0.3s, opacity 0.3s;
+}
+
+/* saat minimize: sembunyikan tulisan */
+/* Sembunyikan hanya teks, bukan icon */
+.sidebar.minimized .text {
+  display: none !important;
+}
+
+/* Jangan sembunyikan tombol toggle */
+.sidebar.minimized .sidebar-toggle {
+  text-indent: 0 !important;
+  padding-left: 0 !important;
+}
+
+.sidebar .active {
+  background: #ffbfa842;
+  font-weight: bold;
+}
+
+/* pindahkan main content */
+.app.with-sidebar {
+  margin-left: 220px;
+  transition: margin-left 0.3s;
+}
+
+.app.with-sidebar.minimized {
+  margin-left: 60px;
+}
+
+/* Saat sidebar minimize, sembunyikan tulisan tapi biarkan ikon tetap terlihat */
+.sidebar.minimized .tab-btn .text {
+  display: none;
+}
+
+/* Saat minimize, pusatkan ikon */
+.sidebar.minimized .tab-btn {
+  text-align: center;
+  padding: 12px 0;
+  font-size: 22px; /* ikon lebih besar biar bagus */
+}
+/* Jangan sembunyikan tombol panah saat minimize */
+.sidebar.minimized .sidebar-toggle {
+  text-indent: 0 !important;
+  padding-left: 0 !important;
+}
+
+
+  </style>
+</head>
+<body>
+    <div id="login-page">
+  <div class="login-card">
+    <h2>Login Senja Food</h2>
+
+    <label>Username</label>
+    <input id="login-user" type="text">
+
+    <label>Password</label>
+    <input id="login-pass" type="password">
+
+    <button id="login-btn">Login</button>
+
+    <div id="login-msg"></div>
+  </div>
+</div>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden></div>
+        <div>
+          <h1>SENJA FOOD</h1>
+          <div class="muted">Sistem Akuntansi — Jurnal · Buku Besar · Neraca · Laba Rugi</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="muted">Data disimpan di browser</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="month" id="archive-month-picker" title="Pilih bulan untuk arsip / laporan"/>
+          <button id="archive-manual" class="small" title="Arsipkan bulan terpilih">Arsipkan Bulan</button>
+          <button id="download-all-pdf" class="small" title="Download semua laporan (terpilih bulan)">Download PDF Bulanan</button>
+          <button id="reset-data" class="small" title="Reset semua data">Reset Data</button>
+          <button id="logout-btn" class="logout">Logout</button>
+        </div>
+      </div>
+    </header>
+
+ <div class="sidebar" id="sidebar">
+  <button class="sidebar-toggle" id="toggleSidebar">☰</button>
+
+  <button class="tab-btn active" data-tab="dashboard">
+  📊 <span class="text">Dashboard</span>
+</button>
+
+<button class="tab-btn" data-tab="jurnal">
+  📝 <span class="text">Jurnal Umum</span>
+</button>
+
+<button class="tab-btn" data-tab="bukubesar">
+  📒 <span class="text">Buku Besar</span>
+</button>
+
+<button class="tab-btn" data-tab="trial">
+  📑 <span class="text">Neraca Saldo</span>
+</button>
+
+<button class="tab-btn" data-tab="neraca">
+  📘 <span class="text">Neraca</span>
+</button>
+
+<button class="tab-btn" data-tab="laba">
+  💰 <span class="text">Laba Rugi</span>
+</button>
+
+<button class="tab-btn" data-tab="perubahan">
+  🔄 <span class="text">Perubahan Modal</span>
+</button>
+
+<button class="tab-btn" data-tab="arsip">
+  🗂️ <span class="text">Arsip</span>
+</button>
+
+</div>
+
+
+  <main class="main-area">
+      <!-- DASHBOARD -->
+      <section id="dashboard" class="tab active">
+        <div class="grid-3">
+          <div class="card">
+            <h3>Kas</h3>
+            <div id="card-kas" class="big-number">Rp 0</div>
+          </div>
+          <div class="card">
+            <h3>Total Pendapatan</h3>
+            <div id="card-rev" class="big-number">Rp 0</div>
+          </div>
+          <div class="card">
+            <h3>Total Beban</h3>
+            <div id="card-exp" class="big-number">Rp 0</div>
+          </div>
+        </div>
+
+
+      <div class="card chart-wrapper">
+  <h3 class="chart-title">Pendapatan vs Beban</h3>
+
+  <div class="chart-full">
+    <canvas id="chartRevExp"></canvas>
+  </div>
+</div>
+
+        <div class="card" style="display:flex;gap:12px;align-items:center">
+          <!-- Ringkasan akun dihapus -->
+          </div>
+      </section>
+
+      <!-- JURNAL UMUM -->
+      <section id="jurnal" class="tab">
+        <div class="card form-card">
+          <h2>Input Transaksi (Double-entry otomatis)</h2>
+
+          <div class="form-row">
+            <label>Tanggal</label>
+            <input type="date" id="tx-date" />
+          </div>
+
+          <div class="form-row">
+            <label>Tipe Transaksi</label>
+            <select id="tx-type">
+              <option value="">-- Pilih Tipe Transaksi --</option>
+              <option value="penjualan_tunai">Penjualan Tunai</option>
+              <option value="penjualan_kredit">Penjualan Kredit</option>
+              <option value="pembelian_tunai">Pembelian Bahan Tunai</option>
+              <option value="pembelian_kredit">Pembelian Bahan Kredit</option>
+              <option value="setor_modal">Setoran Modal</option>
+              <option value="bayar_hutang">Pembayaran Utang</option>
+              <option value="beban_gaji">Beban Gaji</option>
+              <option value="beban_sewa">Beban Sewa</option>
+              <option value="beban_listrik">Beban Listrik &amp; Air</option>
+              <option value="beban_internet">Beban Internet</option>
+              <option value="beban_lain">Beban Lain-lain</option>
+              <option value="prive">Pengambilan untuk kepentingan pribadi</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label>Nominal (Rp)</label>
+            <input type="number" id="tx-amount" placeholder="Masukkan nominal, contoh 20000" min="0" />
+            <div style="margin-top:6px;color:var(--muted);font-size:0.9rem">Ketik angka tanpa tanda. Contoh: 20000 untuk Rp 20.000</div>
+          </div>
+
+          <div class="form-row">
+            <label>Keterangan (opsional)</label>
+            <input id="tx-desc" type="text" placeholder="Contoh: Penjualan seblak - outlet A" />
+          </div>
+
+          <div class="controls">
+            <button id="save-tx" class="primary">Simpan Transaksi</button>
+            <button id="clear-all" class="small">Hapus Semua Transaksi</button>
+          </div>
+
+          <div class="totals">
+            <div>Total Debit: <strong id="total-debit">Rp 0</strong></div>
+            <div>Total Kredit: <strong id="total-credit">Rp 0</strong></div>
+          </div>
+
+          <div id="msg" class="msg"></div>
+        </div>
+
+        <div class="card">
+          <div style="text-align:center;margin-bottom:6px">
+            <strong>SENJA FOOD</strong><br>
+            <em>Jurnal Umum</em>
+          </div>
+
+          <!-- Journal header (period chosen via month picker) -->
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div class="muted">Periode: <span id="journal-period">-</span></div>
+            <div class="muted">Format: Tgl · Perkiraan · Ref · Debit · Kredit</div>
+          </div>
+
+          <table class="journal-table" aria-label="Jurnal Umum">
+            <thead>
+              <tr>
+                <th class="journal-date">Tgl</th>
+                <th class="journal-perkiraan">Perkiraan</th>
+                <th class="journal-ref">Ref</th>
+                <th class="journal-amount">Debit</th>
+                <th class="journal-amount">Kredit</th>
+              </tr>
+            </thead>
+            <tbody id="jurnal-list"></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3" style="text-align:right;font-weight:800">Total</td>
+                <td id="journal-total-debit" style="text-align:right;font-weight:800">Rp 0</td>
+                <td id="journal-total-credit" style="text-align:right;font-weight:800">Rp 0</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+
+      <!-- BUKU BESAR -->
+      <section id="bukubesar" class="tab">
+        <div class="card">
+          <h2>Buku Besar</h2>
+          <div class="form-row">
+            <label>Pilih Akun</label>
+            <select id="ledger-account"></select>
+          </div>
+          <div id="ledger-wrap"></div>
+        </div>
+      </section>
+
+      <!-- TRIAL BALANCE -->
+      <section id="trial" class="tab">
+        <div class="card">
+          <h2>Neraca Saldo (Trial Balance)</h2>
+          <table class="table">
+            <thead><tr><th>Kode</th><th>Akun</th><th>Golongan</th><th>Debit</th><th>Kredit</th></tr></thead>
+            <tbody id="trial-body"></tbody>
+            <tfoot><tr><th colspan="3">Total</th><th id="trial-debit">Rp 0</th><th id="trial-credit">Rp 0</th></tr></tfoot>
+          </table>
+        </div>
+      </section>
+
+      <!-- NERACA -->
+      <section id="neraca" class="tab">
+        <div class="card">
+          <h2>Neraca Keuangan (Balance Sheet)</h2>
+          <div class="two-col">
+            <div>
+              <h3>Aset</h3>
+              <ul id="asset-list" class="account-list"></ul>
+              <div class="total-line">Total Aset: <strong id="total-asset">Rp 0</strong></div>
+            </div>
+            <div>
+              <h3>Kewajiban (Liabilitas)</h3>
+              <ul id="liab-list" class="account-list"></ul>
+              <h3>Ekuitas</h3>
+              <ul id="equity-list" class="account-list"></ul>
+              <div class="total-line">Total Kewajiban + Ekuitas: <strong id="total-liab-equity">Rp 0</strong></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- LABA RUGI -->
+      <section id="laba" class="tab">
+        <div class="card">
+          <h2>Laporan Laba Rugi</h2>
+          <table class="table">
+            <thead><tr><th>Item</th><th>Jumlah</th></tr></thead>
+            <tbody>
+              <tr><td>Total Pendapatan</td><td id="is-revenue">Rp 0</td></tr>
+              <tr><td>Total Beban</td><td id="is-expense">Rp 0</td></tr>
+              <tr class="bold"><td>Laba Bersih</td><td id="is-net">Rp 0</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- PERUBAHAN MODAL -->
+      <section id="perubahan" class="tab">
+        <div class="card">
+          <h2>Laporan Perubahan Modal</h2>
+          <div class="form-row">
+            <label>Pilih Bulan</label>
+            <input type="month" id="equity-month" />
+          </div>
+          <div class="controls">
+            <button id="show-equity" class="small">Tampilkan Perubahan Modal</button>
+          </div>
+          <div id="equity-report" style="margin-top:12px"></div>
+        </div>
+      </section>
+
+      <!-- ARSIP -->
+      <section id="arsip" class="tab">
+        <div class="card">
+          <h2>Arsip Bulanan</h2>
+          <div class="muted">Arsip manual: pilih bulan di pojok kanan atas lalu tekan "Arsipkan Bulan".</div>
+          <div id="archive-list" style="margin-top:12px"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <small>Senja Food · Accounting Demo — data tersimpan di browser</small>
+    </footer>
+  </div>
+
+  <script>
+    /* ========== Helpers & Data ========== */
+    const fmt = n => new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',minimumFractionDigits:0}).format(n||0);
+    const byId = id => document.getElementById(id);
+    const qa = s => Array.from(document.querySelectorAll(s));
+    const STORAGE_KEY = 'senja_food_final_v1';
+    const ARCHIVE_KEY = 'senja_food_final_archives_v1';
+    let chartRE = null;
+
+    // Chart of Accounts (final list)
+    const ACCOUNTS = [
+      // ASSET
+      { id:'A101', code:'101', name:'Kas', type:'asset' },
+      { id:'A102', code:'102', name:'Piutang Usaha', type:'asset' },
+      { id:'A103', code:'103', name:'Persediaan Barang Dagang', type:'asset' },
+      { id:'A104', code:'104', name:'Perlengkapan', type:'asset' },
+      { id:'A105', code:'105', name:'Sewa Dibayar di Muka', type:'asset' },
+      { id:'A106', code:'106', name:'Peralatan', type:'asset' },
+      // LIABILITY
+      { id:'L201', code:'201', name:'Utang Usaha', type:'liability' },
+      // EQUITY
+      { id:'E301', code:'301', name:'Modal', type:'equity' },
+      { id:'E302', code:'302', name:'Prive', type:'equity' },
+      // REVENUE
+      { id:'R401', code:'401', name:'Penjualan', type:'revenue' },
+      // EXPENSES
+      { id:'X501', code:'501', name:'Beban Gaji', type:'expense' },
+      { id:'X502', code:'502', name:'Beban Sewa', type:'expense' },
+      { id:'X503', code:'503', name:'Beban Listrik & Air', type:'expense' },
+      { id:'X504', code:'504', name:'Beban Internet', type:'expense' },
+      { id:'X505', code:'505', name:'Beban Lain-lain', type:'expense' },
+    ];
+
+    // transactions stored as: { id, date (YYYY-MM-DD), desc, type, lines: [ {accountId, debit, credit} ] }
+    let transactions = [];
+
+    function load(){ try{ const raw = localStorage.getItem(STORAGE_KEY); transactions = raw ? JSON.parse(raw) : []; }catch(e){ transactions = []; } }
+    function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions)); }
+
+    /* ========== UI Init ========== */
+    document.addEventListener('DOMContentLoaded', () => {
+      // tabs
+      qa('.tab-btn').forEach(btn => btn.addEventListener('click', ()=> {
+        qa('.tab-btn').forEach(b=>b.classList.remove('active'));
+        qa('.tab').forEach(t=>t.classList.remove('active'));
+        btn.classList.add('active');
+        const tab = btn.dataset.tab; const sec = document.getElementById(tab); if(sec) sec.classList.add('active');
+        if(tab==='bukubesar') populateLedgerSelect();
+        if(tab==='arsip') renderArchives();
+        renderAll();
+      }));
+
+      // events
+      byId('save-tx').addEventListener('click', onSaveTx);
+      byId('clear-all').addEventListener('click', onClearAll);
+      byId('reset-data').addEventListener('click', onResetData);
+      byId('ledger-account').addEventListener('change', renderLedger);
+      byId('archive-manual').addEventListener('click', archiveSelectedMonth);
+      byId('archive-month-picker').addEventListener('change', updateJournalPeriodLabel);
+      byId('download-all-pdf').addEventListener('click', downloadSelectedMonthPDF);
+      byId('show-equity').addEventListener('click', showEquityReportForSelectedMonth);
+
+      initChart();
+      load();
+      renderAll();
+      updateJournalPeriodLabel();
+    });
+
+    // find account helper
+    function accById(id){ return ACCOUNTS.find(a => a.id === id); }
+
+    /* ========== Transaction mapping & save ========== */
+    function getAccountsForType(type){
+      switch(type){
+        case 'penjualan_tunai': return { debit:'A101', credit:'R401' };
+        case 'penjualan_kredit': return { debit:'A102', credit:'R401' };
+        case 'pembelian_tunai': return { debit:'A103', credit:'A101' };
+        case 'pembelian_kredit': return { debit:'A103', credit:'L201' };
+        case 'setor_modal': return { debit:'A101', credit:'E301' };
+        case 'bayar_hutang': return { debit:'L201', credit:'A101' };
+        case 'beban_gaji': return { debit:'X501', credit:'A101' };
+        case 'beban_sewa': return { debit:'X502', credit:'A101' };
+        case 'beban_listrik': return { debit:'X503', credit:'A101' };
+        case 'beban_internet': return { debit:'X504', credit:'A101' };
+        case 'beban_lain': return { debit:'X505', credit:'A101' };
+        case 'prive': return { debit:'E302', credit:'A101' };
+        default: return null;
+      }
+    }
+
+    function onSaveTx(){
+      const type = byId('tx-type').value;
+      const rawAmt = byId('tx-amount').value;
+      const amount = parseFloat(rawAmt) || 0;
+      const date = byId('tx-date').value || new Date().toISOString().slice(0,10);
+      const desc = byId('tx-desc').value.trim();
+
+      if(!type) return showMsg('Pilih tipe transaksi', 'error');
+      if(!amount || amount <= 0) return showMsg('Masukkan nominal > 0', 'error');
+
+      const acct = getAccountsForType(type);
+      if(!acct) return showMsg('Tipe transaksi tidak dikenali', 'error');
+
+      const lines = [
+        { accountId: acct.debit, debit: amount, credit: 0 },
+        { accountId: acct.credit, debit: 0, credit: amount }
+      ];
+      const entry = { id: Date.now().toString(), date, desc, type, lines };
+      transactions.unshift(entry); save(); renderAll();
+      highlightLatestEntry(entry.id); showMsg('Transaksi tersimpan', 'ok');
+
+      // reset form
+      byId('tx-type').value=''; byId('tx-amount').value=''; byId('tx-date').value=''; byId('tx-desc').value='';
+    }
+
+    function highlightLatestEntry(id){
+      setTimeout(()=> {
+        document.querySelectorAll(`[data-txid="${id}"]`).forEach(el=>el.classList.add('recent'));
+        setTimeout(()=> document.querySelectorAll(`[data-txid="${id}"]`).forEach(el=>el.classList.remove('recent')), 2000);
+      }, 60);
+    }
+
+    function showMsg(text, kind='ok'){ const el = byId('msg'); el.textContent = text; el.className = 'msg ' + (kind==='error'?'error':'ok'); setTimeout(()=>{ el.textContent=''; el.className='msg'; }, 3000); }
+
+    /* ========== Render Journal (vertical format) ========== */
+    function renderJurnal(){
+      const tbody = byId('jurnal-list'); tbody.innerHTML='';
+      let totD=0, totC=0;
+      const monthKey = byId('archive-month-picker').value; // "YYYY-MM" or blank => show all
+      const filtered = monthKey ? transactions.filter(t=> t.date.slice(0,7) === monthKey) : transactions;
+      for(const tx of filtered){
+        const d = tx.lines[0], c = tx.lines[1];
+        const dacc = accById(d.accountId), cacc = accById(c.accountId);
+        // first row: date, perkiraan (debit), ref (code), debit amount
+        const tr1 = document.createElement('tr'); tr1.dataset.txid = tx.id;
+        tr1.innerHTML = `<td class="journal-date">${tx.date}</td>
+                         <td class="journal-perkiraan">${dacc?dacc.name:d.accountId}</td>
+                         <td class="journal-ref">${dacc?dacc.code:''}</td>
+                         <td class="journal-amount">${fmt(d.debit)}</td>
+                         <td class="journal-amount"></td>`;
+        // second row: empty date, perkiraan (credit) indented, ref, credit amount
+        const tr2 = document.createElement('tr'); tr2.dataset.txid = tx.id;
+        tr2.innerHTML = `<td></td>
+                         <td class="journal-perkiraan indent-credit">${cacc?cacc.name:c.accountId}</td>
+                         <td class="journal-ref">${cacc?cacc.code:''}</td>
+                         <td class="journal-amount"></td>
+                         <td class="journal-amount">${fmt(c.credit)}</td>`;
+
+        tbody.appendChild(tr1); tbody.appendChild(tr2);
+
+        // add totals
+        totD += d.debit || 0; totC += c.credit || 0;
+      }
+
+      byId('journal-total-debit').textContent = fmt(totD);
+      byId('journal-total-credit').textContent = fmt(totC);
+
+      // delete button: show as action in rightmost column? we will add delete buttons in PR below
+      // add delete buttons per transaction: create a small row with delete
+      // (Simpler: include delete buttons as context menu - but for clarity, add a small clickable ref to remove)
+      // We'll append a tiny control row after each transaction pair
+      // First remove existing control rows:
+      const existingControls = document.querySelectorAll('.tx-control-row'); existingControls.forEach(e=>e.remove());
+      const pairs = Array.from(tbody.querySelectorAll('tr[data-txid]'));
+      // find unique tx ids in order
+      const seen = new Set();
+      for(const row of pairs){
+        const id = row.dataset.txid;
+        if(seen.has(id)) continue;
+        seen.add(id);
+        // insert a control row after the second tr (we'll find second occurrence)
+        const rows = Array.from(tbody.querySelectorAll(`tr[data-txid="${id}"]`));
+        const second = rows[rows.length-1];
+        const ctrl = document.createElement('tr'); ctrl.className='tx-control-row'; ctrl.dataset.txid = id;
+        ctrl.innerHTML = `<td colspan="5" style="text-align:right;padding:6px;background:#fafdfa;">
+          <button class="small btn-del" data-id="${id}">Hapus Transaksi</button>
+        </td>`;
+        second.after(ctrl);
+      }
+
+      // attach delete handlers
+      qa('.btn-del').forEach(btn => btn.addEventListener('click', e=>{
+        const id = e.target.dataset.id;
+        if(!confirm('Hapus transaksi ini?')) return;
+        transactions = transactions.filter(t=> t.id !== id);
+        save(); renderAll();
+      }));
+    }
+
+    /* ========== Balances, Trial, Ledger, Reports ========== */
+    function computeBalances(list=transactions){
+      const balances = {}; ACCOUNTS.forEach(a=>balances[a.id]=0);
+      for(const tx of list){
+        for(const l of tx.lines){
+          balances[l.accountId] = (balances[l.accountId]||0) + (l.debit||0) - (l.credit||0);
+        }
+      }
+      return balances;
+    }
+
+    function renderTrial(){
+      const tbody = byId('trial-body'); tbody.innerHTML='';
+      const monthKey = byId('archive-month-picker').value;
+      const list = monthKey ? transactions.filter(t=> t.date.slice(0,7) === monthKey) : transactions;
+      const balances = computeBalances(list);
+      let totD=0, totC=0;
+      for(const a of ACCOUNTS){
+        const b = balances[a.id]||0; let d=0,c=0;
+        if(b>=0) d=b; else c=-b;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${a.code}</td><td>${a.name}</td><td>${a.type}</td><td style="text-align:right">${fmt(d)}</td><td style="text-align:right">${fmt(c)}</td>`;
+        tbody.appendChild(tr); totD+=d; totC+=c;
+      }
+      byId('trial-debit').textContent = fmt(totD); byId('trial-credit').textContent = fmt(totC);
+      byId('total-debit').textContent = fmt(totD); byId('total-credit').textContent = fmt(totC);
+    }
+
+    function populateLedgerSelect(){
+      const sel = byId('ledger-account');
+      sel.innerHTML = '<option value="">-- pilih akun --</option>' + ACCOUNTS.map(a=>`<option value="${a.id}">${a.code} - ${a.name}</option>`).join('');
+    }
+    function renderLedger(){
+      const accId = byId('ledger-account').value; const wrap = byId('ledger-wrap'); wrap.innerHTML='';
+      if(!accId) return;
+      const acc = accById(accId);
+      const tbl = document.createElement('table'); tbl.className='table';
+      tbl.innerHTML = `<thead><tr><th>Tanggal</th><th>Keterangan</th><th>Debit</th><th>Kredit</th><th>Saldo</th></tr></thead>`;
+      const tbody = document.createElement('tbody'); let running=0;
+      const monthKey = byId('archive-month-picker').value;
+      const list = monthKey ? transactions.filter(t=> t.date.slice(0,7)===monthKey) : transactions;
+      const txs = [...list].reverse();
+      for(const tx of txs){
+        for(const l of tx.lines){
+          if(l.accountId !== accId) continue;
+          const d = l.debit||0, c = l.credit||0; running += d - c;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${tx.date}</td><td>${tx.desc || tx.type}</td><td style="text-align:right">${fmt(d)}</td><td style="text-align:right">${fmt(c)}</td><td style="text-align:right">${fmt(running)}</td>`;
+          tbody.appendChild(tr);
+        }
+      }
+      tbl.appendChild(tbody); wrap.appendChild(tbl);
+    }
+
+    function renderBalanceSheet(){
+      const monthKey = byId('archive-month-picker').value;
+      const list = monthKey ? transactions.filter(t=> t.date.slice(0,7)===monthKey) : transactions;
+      const balances = computeBalances(list);
+      const assetList = byId('asset-list'); assetList.innerHTML=''; let totalAsset=0;
+      ACCOUNTS.filter(a=>a.type==='asset').forEach(a=>{ const b = balances[a.id]||0; totalAsset+=b; const li=document.createElement('li'); li.innerHTML=`<span>${a.name}</span><strong>${fmt(b)}</strong>`; assetList.appendChild(li); });
+      byId('total-asset').textContent = fmt(totalAsset);
+
+      const liabList = byId('liab-list'); liabList.innerHTML=''; let totalLiab=0;
+      ACCOUNTS.filter(a=>a.type==='liability').forEach(a=>{ const b = balances[a.id]||0; totalLiab += -b; const li=document.createElement('li'); li.innerHTML=`<span>${a.name}</span><strong>${fmt(-b)}</strong>`; liabList.appendChild(li); });
+
+      const equityList = byId('equity-list'); equityList.innerHTML=''; let totalEquity=0;
+      ACCOUNTS.filter(a=>a.type==='equity').forEach(a=>{ const b = balances[a.id]||0; totalEquity += -b; const li=document.createElement('li'); li.innerHTML=`<span>${a.name}</span><strong>${fmt(-b)}</strong>`; equityList.appendChild(li); });
+
+      let totalRevenue=0, totalExpense=0;
+      ACCOUNTS.filter(a=>a.type==='revenue').forEach(a=> totalRevenue += -(balances[a.id]||0));
+      ACCOUNTS.filter(a=>a.type==='expense').forEach(a=> totalExpense += (balances[a.id]||0));
+      const netIncome = totalRevenue - totalExpense;
+      const ni = document.createElement('li'); ni.innerHTML = `<span>Laba (Rugi) Bersih</span><strong>${fmt(netIncome)}</strong>`; equityList.appendChild(ni);
+      totalEquity += netIncome;
+
+      byId('total-liab-equity').textContent = fmt(totalLiab + totalEquity);
+    }
+
+    function renderIncomeStatement(){
+      const monthKey = byId('archive-month-picker').value;
+      const list = monthKey ? transactions.filter(t=> t.date.slice(0,7)===monthKey) : transactions;
+      const balances = computeBalances(list);
+      let totalRevenue=0, totalExpense=0;
+      ACCOUNTS.filter(a=>a.type==='revenue').forEach(a=> totalRevenue += -(balances[a.id]||0));
+      ACCOUNTS.filter(a=>a.type==='expense').forEach(a=> totalExpense += (balances[a.id]||0));
+      byId('is-revenue').textContent = fmt(totalRevenue);
+      byId('is-expense').textContent = fmt(totalExpense);
+      byId('is-net').textContent = fmt(totalRevenue - totalExpense);
+      byId('card-rev').textContent = fmt(totalRevenue);
+      byId('card-exp').textContent = fmt(totalExpense);
+      updateChart(totalRevenue, totalExpense);
+
+    }
+
+    function renderSummary() {
+  // Ringkasan akun dihapus → fungsi dikosongkan
+}
+
+
+    /* ========== Chart ========== */
+   function initChart(){
+  const ctx = byId('chartRevExp').getContext('2d');
+  chartRE = new Chart(ctx, {
+    type:'doughnut',
+    data:{
+      labels:['Pendapatan','Beban'],
+      datasets:[{ 
+        data:[0,0], 
+        backgroundColor:['#6ea8fe','#ff9b9b'] 
+      }]
+    },
+    options:{
+      plugins:{
+        legend:{
+          position:'bottom',
+          labels:{
+            boxWidth:20,
+            color: 'black'   // ← warna hitam
+          }
+        }
+      },
+      maintainAspectRatio:false
+    }
+  });
+}
+
+    function updateChart(rev, exp){ if(!chartRE) return; chartRE.data.datasets[0].data = [rev, exp]; chartRE.update(); }
+
+    /* ========== Render All ========== */
+    function renderAll(){
+      renderJurnal(); renderTrial(); populateLedgerSelect(); renderLedger(); renderBalanceSheet(); renderIncomeStatement(); renderSummary(); renderArchives(); updateJournalPeriodLabel();
+    }
+
+    /* ========== Clear / Reset ========== */
+    function onClearAll(){ if(!confirm('Hapus semua transaksi?')) return; transactions=[]; save(); renderAll(); showMsg('Semua transaksi dihapus','ok'); }
+    function onResetData(){ if(!confirm('Reset semua data & arsip?')) return; localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(ARCHIVE_KEY); transactions=[]; renderAll(); showMsg('Data & arsip di-reset','ok'); }
+
+    /* ========== Perubahan Modal ========== */
+    function computeEquityChangeForMonth(monthKey){
+      // opening capital = modal saldo before first day of month
+      const opening = computeBalancesUpTo(`${monthKey}-01`, true)['E301'] || 0;
+      const txsIn = transactions.filter(t=> t.date.slice(0,7)===monthKey);
+      let addedCapital=0, priveTotal=0, revenue=0, expense=0;
+      txsIn.forEach(tx=>{
+        tx.lines.forEach(l=>{
+          const acc = accById(l.accountId);
+          if(!acc) return;
+          if(acc.id==='E301' && l.credit>0) addedCapital += l.credit;
+          if(acc.id==='E302' && l.debit>0) priveTotal += l.debit;
+          if(acc.type==='revenue') revenue += l.credit || 0;
+          if(acc.type==='expense') expense += l.debit || 0;
+        });
+      });
+      const netIncome = revenue - expense;
+      const ending = opening + addedCapital + netIncome - priveTotal;
+      return { openingCapital: opening, addedCapital, revenue, expense, netIncome, priveTotal, endingCapital: ending, txsInMonth: txsIn };
+    }
+
+    function computeBalancesUpTo(dateStr, upToPrevDay=false){
+      const balances = {}; ACCOUNTS.forEach(a=>balances[a.id]=0);
+      const cutoff = new Date(dateStr);
+      if(upToPrevDay) cutoff.setDate(cutoff.getDate()-1);
+      for(const tx of transactions){
+        const txDate = new Date(tx.date + 'T00:00:00');
+        if(txDate <= cutoff){
+          for(const l of tx.lines) balances[l.accountId] = (balances[l.accountId]||0) + (l.debit||0) - (l.credit||0);
+        }
+      }
+      return balances;
+    }
+
+    function showEquityReportForSelectedMonth(){
+      const m = byId('equity-month').value;
+      if(!m) return showMsg('Pilih bulan (YYYY-MM)', 'error');
+      const r = computeEquityChangeForMonth(m);
+      renderEquityReport(r, m);
+    }
+
+    function renderEquityReport(rep, monthKey){
+      const wrap = byId('equity-report'); wrap.innerHTML = '';
+      const html = document.createElement('div');
+      html.innerHTML = `<h3>Perubahan Modal — Periode ${monthKey}</h3>
+        <table class="table"><tbody>
+          <tr><td>Modal Awal</td><td style="text-align:right">${fmt(rep.openingCapital)}</td></tr>
+          <tr><td>Setoran Modal</td><td style="text-align:right">${fmt(rep.addedCapital)}</td></tr>
+          <tr><td>Laba (Rugi) Periode</td><td style="text-align:right">${fmt(rep.netIncome)}</td></tr>
+          <tr><td>Prive (Pengambilan)</td><td style="text-align:right">${fmt(rep.priveTotal)}</td></tr>
+          <tr class="bold"><td>Modal Akhir</td><td style="text-align:right">${fmt(rep.endingCapital)}</td></tr>
+        </tbody></table>`;
+      const list = document.createElement('div'); list.innerHTML = `<h4>Transaksi (${rep.txsInMonth.length})</h4>` + rep.txsInMonth.map(t=> `<div style="padding:6px 0;border-bottom:1px dashed #eee"><strong>${t.date}</strong> — ${t.desc || t.type} — ${t.lines.map(l=> (accById(l.accountId)?.name||l.accountId) + (l.debit?(' D '+fmt(l.debit)):'') + (l.credit?(' K '+fmt(l.credit)):'')).join(' ; ')}</div>`).join('');
+      wrap.appendChild(html); wrap.appendChild(list);
+    }
+
+    /* ========== Archives (manual) ========== */
+    function loadArchives(){ try{ const raw = localStorage.getItem(ARCHIVE_KEY); return raw?JSON.parse(raw):[]; }catch(e){ return []; } }
+    function saveArchive(obj){ const arr = loadArchives(); arr.unshift(obj); localStorage.setItem(ARCHIVE_KEY, JSON.stringify(arr)); }
+
+    function archiveSelectedMonth(){
+      const month = byId('archive-month-picker').value;
+      if(!month) return showMsg('Pilih bulan untuk diarsipkan (atas kanan)', 'error');
+      const txs = transactions.filter(t=> t.date.slice(0,7) === month);
+      if(txs.length === 0) return showMsg('Tidak ada transaksi pada bulan tersebut', 'error');
+      const balances = computeBalances(txs);
+      let totalRevenue=0, totalExpense=0;
+      ACCOUNTS.filter(a=>a.type==='revenue').forEach(a=> totalRevenue += -(balances[a.id]||0));
+      ACCOUNTS.filter(a=>a.type==='expense').forEach(a=> totalExpense += (balances[a.id]||0));
+      const equity = computeEquityChangeForMonth(month);
+      const archiveObj = { month, createdAt: new Date().toISOString(), transactions: txs, balancesSnapshot: balances, income: { totalRevenue, totalExpense, netIncome: totalRevenue - totalExpense }, equity };
+      saveArchive(archiveObj); showMsg('Arsip bulan ' + month + ' dibuat', 'ok'); renderArchives();
+    }
+
+    function renderArchives(){
+      const arr = loadArchives(); const wrap = byId('archive-list'); wrap.innerHTML = '';
+      if(arr.length === 0) return wrap.innerHTML = '<div class="muted">Belum ada arsip.</div>';
+      arr.forEach((a, i) => {
+        const card = document.createElement('div'); card.className='card'; card.style.marginBottom='8px';
+        card.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>${a.month}</strong><div class="muted">Arsip dibuat: ${new Date(a.createdAt).toLocaleString()}</div><div style="margin-top:6px">${a.transactions.length} transaksi · Laba bersih: ${fmt(a.income.netIncome)}</div></div>
+          <div style="display:flex;gap:8px">
+            <button class="small download-pdf" data-i="${i}">Unduh PDF</button>
+            <button class="small delete-archive" data-i="${i}">Hapus</button>
+          </div>
+        </div>`;
+        wrap.appendChild(card);
+      });
+      // handlers
+      qa('.download-pdf').forEach(b=> b.addEventListener('click', async e=>{
+        const i = Number(e.target.dataset.i); const a = loadArchives()[i];
+        try{ await downloadArchivePDF(a); showMsg('PDF arsip diunduh', 'ok'); }catch(err){ console.error(err); showMsg('Gagal membuat PDF', 'error'); }
+      }));
+      qa('.delete-archive').forEach(btn =>
+  btn.addEventListener('click', e => {
+    const i = Number(e.target.dataset.i);
+    if(!confirm('Hapus arsip ini?')) return;
+
+    const arr = loadArchives();
+    arr.splice(i, 1); // hapus arsip ke-i
+    localStorage.setItem(ARCHIVE_KEY, JSON.stringify(arr));
+    
+    renderArchives(); // refresh tampilan
+    showMsg('Arsip berhasil dihapus', 'ok');
+  })
+);
+
+    }
+
+    /* ========== PDF generation (all-in-one for selected month) ========== */
+  function generateAllReportsHTML(monthKey) {
+  const monthLabel = (monthKey)
+    ? new Date(monthKey + '-01').toLocaleString('id-ID', { month: 'long', year: 'numeric' })
+    : 'Semua Periode';
+
+  const list = monthKey ? transactions.filter(t => t.date.slice(0, 7) === monthKey) : transactions;
+
+  // =======================================
+  //   HITUNG TOTAL UNTUK JURNAL UMUM
+  // =======================================
+
+  let totalDebit = 0;
+  let totalCredit = 0;
+
+  const journalRows = list.map(tx => {
+    const d = tx.lines[0];
+    const c = tx.lines[1];
+
+    totalDebit += d.debit || 0;
+    totalCredit += c.credit || 0;
+
+    const dacc = accById(d.accountId);
+    const cacc = accById(c.accountId);
+
+    return `
+      <tr>
+        <td style="padding:6px;border:1px solid #ddd">${tx.date}</td>
+        <td style="padding:6px;border:1px solid #ddd">${dacc ? dacc.name : d.accountId}</td>
+        <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(d.debit || 0)}</td>
+        <td style="padding:6px;border:1px solid #ddd"></td>
+      </tr>
+      <tr>
+        <td style="padding:6px;border:1px solid #ddd"></td>
+        <td style="padding:6px;border:1px solid #ddd;padding-left:24px">${cacc ? cacc.name : c.accountId}</td>
+        <td style="padding:6px;border:1px solid #ddd"></td>
+        <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(c.credit || 0)}</td>
+      </tr>
+    `;
+  }).join('');
+
+  // =======================================
+  //   HITUNG NERACA (ASET, LIABILITAS, EKUITAS)
+  // =======================================
+
+  const balances = computeBalances(list);
+
+  let totalAsset = 0;
+  let totalLiability = 0;
+  let totalEquity = 0;
+
+  const assetRows = ACCOUNTS.filter(a => a.type === 'asset').map(a => {
+    const b = balances[a.id] || 0;
+    totalAsset += b;
+    return `
+      <tr>
+        <td style="padding:6px;border:1px solid #ddd">${a.name}</td>
+        <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(b)}</td>
+      </tr>
+    `;
+  }).join('');
+
+  const liabRows = ACCOUNTS.filter(a => a.type === 'liability').map(a => {
+    const b = balances[a.id] || 0;
+    totalLiability += -b;
+    return `
+      <tr>
+        <td style="padding:6px;border:1px solid #ddd">${a.name}</td>
+        <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(-b)}</td>
+      </tr>
+    `;
+  }).join('');
+
+  const equityRows = ACCOUNTS.filter(a => a.type === 'equity').map(a => {
+    const b = balances[a.id] || 0;
+    totalEquity += -b;
+    return `
+      <tr>
+        <td style="padding:6px;border:1px solid #ddd">${a.name}</td>
+        <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(-b)}</td>
+      </tr>
+    `;
+  }).join('');
+
+  // =======================================
+  //   PERHITUNGAN LABA BERSIH
+  // =======================================
+
+  let totalRevenue = 0;
+  let totalExpense = 0;
+
+  ACCOUNTS.filter(a => a.type === 'revenue')
+          .forEach(a => totalRevenue += -(balances[a.id] || 0));
+
+  ACCOUNTS.filter(a => a.type === 'expense')
+          .forEach(a => totalExpense += (balances[a.id] || 0));
+
+  const netIncome = totalRevenue - totalExpense;
+
+  // Tambahkan laba ke ekuitas
+  totalEquity += netIncome;
+  // ==== PERUBAHAN MODAL ====
+const equityCalc = computeEquityChangeForMonth(monthKey);
+
+const modalAwal = equityCalc.openingCapital || 0;
+const setoranModal = equityCalc.addedCapital || 0;
+const prive = equityCalc.priveTotal || 0;
+const labaBersih = equityCalc.netIncome || 0;
+const modalAkhir = equityCalc.endingCapital || 0;
+
+
+  // =======================================
+  //   FINAL HTML UNTUK PDF
+  // =======================================
+
+  const html = `
+    <div style="font-family:Arial;padding:18px;color:#111">
+
+      <h2 style="text-align:center;margin:0">SENJA FOOD</h2>
+      <div style="text-align:center;margin-bottom:12px">
+        LAPORAN KEUANGAN — ${monthLabel}
+      </div>
+
+      <!-- ===================== JURNAL UMUM ===================== -->
+      <h3>Jurnal Umum</h3>
+
+      <table style="width:100%;border-collapse:collapse;margin-bottom:14px">
+        <thead>
+          <tr>
+            <th style="padding:6px;border:1px solid #ddd">Tanggal</th>
+            <th style="padding:6px;border:1px solid #ddd">Perkiraan</th>
+            <th style="padding:6px;border:1px solid #ddd;text-align:right">Debit</th>
+            <th style="padding:6px;border:1px solid #ddd;text-align:right">Kredit</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          ${journalRows}
+        </tbody>
+
+        <tfoot>
+          <tr>
+            <td></td>
+            <td style="padding:6px;border:1px solid #ddd;font-weight:bold;text-align:right">TOTAL</td>
+            <td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${fmt(totalDebit)}</td>
+            <td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${fmt(totalCredit)}</td>
+          </tr>
+        </tfoot>
+      </table>
+
+
+      <!-- ===================== LABA RUGI ===================== -->
+      <h3>Laporan Laba Rugi</h3>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:14px">
+        <tr><td style="padding:6px;border:1px solid #ddd">Total Pendapatan</td>
+            <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(totalRevenue)}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #ddd">Total Beban</td>
+            <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(totalExpense)}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #ddd;font-weight:bold">Laba Bersih</td>
+            <td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${fmt(netIncome)}</td></tr>
+      </table>
+
+     <h3>Laporan Perubahan Modal</h3>
+
+<table style="width:100%;border-collapse:collapse;margin-bottom:14px">
+  <tr>
+    <td style="padding:6px;border:1px solid #ddd">Modal Awal</td>
+    <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(modalAwal)}</td>
+  </tr>
+  <tr>
+    <td style="padding:6px;border:1px solid #ddd">Setoran Modal</td>
+    <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(setoranModal)}</td>
+  </tr>
+  <tr>
+    <td style="padding:6px;border:1px solid #ddd">Laba (Rugi) Bersih</td>
+    <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(labaBersih)}</td>
+  </tr>
+  <tr>
+    <td style="padding:6px;border:1px solid #ddd">Prive</td>
+    <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(prive)}</td>
+  </tr>
+  <tr>
+    <td style="padding:6px;border:1px solid #ddd;font-weight:bold">Modal Akhir</td>
+    <td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${fmt(modalAkhir)}</td>
+  </tr>
+</table>
+ 
+      <!-- ===================== NERACA ===================== -->
+      <h3>Neraca Keuangan</h3>
+
+      <div style="display:flex;gap:16px">
+
+        <!-- ASEt -->
+        <div style="flex:1">
+          <strong>Aset</strong>
+          <table style="width:100%;border-collapse:collapse;margin-top:6px">
+            ${assetRows}
+            <tr>
+              <td style="padding:6px;border:1px solid #ddd;font-weight:bold">TOTAL ASET</td>
+              <td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${fmt(totalAsset)}</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- KEWAJIBAN + EKUITAS -->
+        <div style="flex:1">
+          <strong>Kewajiban</strong>
+          <table style="width:100%;border-collapse:collapse;margin-top:6px">
+            ${liabRows}
+            <tr>
+              <td style="padding:6px;border:1px solid #ddd;font-weight:bold">TOTAL KEWAJIBAN</td>
+              <td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${fmt(totalLiability)}</td>
+            </tr>
+          </table>
+
+          <strong>Ekuitas</strong>
+          <table style="width:100%;border-collapse:collapse;margin-top:6px">
+            ${equityRows}
+            <tr>
+              <td style="padding:6px;border:1px solid #ddd">Laba (Rugi) Bersih</td>
+              <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(netIncome)}</td>
+            </tr>
+            <tr>
+              <td style="padding:6px;border:1px solid #ddd;font-weight:bold">TOTAL EKUITAS</td>
+              <td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${fmt(totalEquity)}</td>
+            </tr>
+            <tr>
+              <td style="padding:6px;border:1px solid #ddd;font-weight:bold">TOTAL KEWAJIBAN + EKUITAS</td>
+              <td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${fmt(totalLiability + totalEquity)}</td>
+            </tr>
+          </table>
+        </div>
+
+      </div>
+
+      <div style="margin-top:16px;font-size:12px;color:#666">
+        Dicetak dari Senja Food Accounting — ${new Date().toLocaleString()}
+      </div>
+
+    </div>
+  `;
+
+  return html;
+}
+
+    async function downloadSelectedMonthPDF(){
+      const month = byId('archive-month-picker').value;
+      if(!month) return showMsg('Pilih bulan di pojok kanan atas terlebih dahulu', 'error');
+      const html = generateAllReportsHTML(month);
+      await downloadHTMLAsPDF(html, `Laporan_SenjaFood_${month}.pdf`);
+    }
+
+    // generic: convert HTML string to PDF via html2canvas + jsPDF, paginates if tall
+    async function downloadHTMLAsPDF(htmlString, filename){
+      const container = document.createElement('div');
+      container.style.width = '794px'; container.style.padding = '12px'; container.style.background = '#fff';
+      container.style.position = 'fixed'; container.style.left = '-9999px';
+      container.innerHTML = htmlString;
+      document.body.appendChild(container);
+      await new Promise(r=>setTimeout(r,150));
+      const canvas = await html2canvas(container, { scale:2 });
+      const imgData = canvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const pxToMm = 0.264583;
+      const imgWidthMm = canvas.width * pxToMm;
+      const imgHeightMm = canvas.height * pxToMm;
+      const scale = (pageWidth - 20) / imgWidthMm;
+      const imgW = imgWidthMm * scale;
+      const imgH = imgHeightMm * scale;
+
+      if(imgH <= pageHeight - 20){
+        pdf.addImage(imgData, 'PNG', 10, 10, imgW, imgH);
+      } else {
+        // paginate
+        const pageHeightPx = Math.floor((pageHeight - 20) / pxToMm);
+        const canvasW = canvas.width;
+        let srcY = 0;
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = canvasW;
+        pageCanvas.height = pageHeightPx;
+        const pctx = pageCanvas.getContext('2d');
+        while(srcY < canvas.height){
+          pctx.clearRect(0,0,pageCanvas.width,pageCanvas.height);
+          pctx.drawImage(canvas, 0, srcY, pageCanvas.width, pageCanvas.height, 0, 0, pageCanvas.width, pageCanvas.height);
+          const pageData = pageCanvas.toDataURL('image/png');
+          if(srcY > 0) pdf.addPage();
+          pdf.addImage(pageData, 'PNG', 10, 10, imgW, (pageHeightPx * pxToMm) * scale);
+          srcY += pageHeightPx;
+        }
+      }
+      pdf.save(filename);
+      container.remove();
+    }
+
+    async function downloadArchivePDF(archiveObj){
+      // Archive object already contains monthly snapshot; reuse generateAllReportsHTML by injecting its transactions
+      // We'll temporarily set transactions filtered to archiveObj.transactions then generate HTML
+      const origTx = transactions;
+      transactions = archiveObj.transactions.slice();
+      const html = generateAllReportsHTML(archiveObj.month);
+      await downloadHTMLAsPDF(html, `Laporan_SenjaFood_${archiveObj.month}.pdf`);
+      transactions = origTx;
+    }
+
+    /* ========== Rendering archives list handled earlier ========== */
+    // renderArchives implemented earlier; ensure it's called in renderAll
+
+    /* ========== Utility / Period label ========== */
+    function updateJournalPeriodLabel(){
+      const m = byId('archive-month-picker').value;
+      byId('journal-period').textContent = m ? new Date(m + '-01').toLocaleString('id-ID', { month:'long', year:'numeric' }) : 'Semua Periode';
+    }
+
+    /* ========== Initial load & render ========== */
+    load(); initChart(); renderAll();
+    // ==================== LOGIN SYSTEM ====================
+
+// Data login
+const correctUser = "111";
+const correctPass = "111";
+
+// Cek status login saat halaman dibuka
+if (localStorage.getItem("loggedIn") === "true") {
+    // Sudah login → tampilkan dashboard
+    document.getElementById("login-page").style.display = "none";
+    document.querySelector(".app").style.display = "block";
+} else {
+    // Belum login → tampilkan login
+    document.getElementById("login-page").style.display = "flex";
+    document.querySelector(".app").style.display = "none";
+}
+
+// Tombol Login
+document.getElementById("login-btn").addEventListener("click", () => {
+    const u = document.getElementById("login-user").value.trim();
+    const p = document.getElementById("login-pass").value.trim();
+
+    if (u === correctUser && p === correctPass) {
+        // Simpan status login
+        localStorage.setItem("loggedIn", "true");
+
+        // Tampilkan dashboard
+        document.getElementById("login-page").style.display = "none";
+        document.querySelector(".app").style.display = "block";
+    } else {
+        document.getElementById("login-msg").textContent = "Username atau password salah!";
+    }
+});
+
+// Tombol Logout
+document.getElementById("logout-btn").addEventListener("click", () => {
+    // Hapus status login
+    localStorage.removeItem("loggedIn");
+
+    // Tampilkan login
+    document.getElementById("login-page").style.display = "flex";
+    document.querySelector(".app").style.display = "none";
+
+    // Reset input
+    document.getElementById("login-user").value = "";
+    document.getElementById("login-pass").value = "";
+});
+
+// ==== SIDEBAR TOGGLE ====
+const sidebar = document.getElementById("sidebar");
+const toggleBtn = document.getElementById("toggleSidebar");
+const appArea = document.querySelector(".app");
+
+toggleBtn.addEventListener("click", () => {
+  sidebar.classList.toggle("minimized");
+  appArea.classList.toggle("minimized");
+
+  // ganti ikon panah
+  toggleBtn.innerHTML = sidebar.classList.contains("minimized")
+   ? "☰"   // panah kanan
+  : "☰";  // panah kiri
+});
+
+
+// aktifkan layout sidebar
+appArea.classList.add("with-sidebar");
+
+  </script>
+</body>
+</html>
