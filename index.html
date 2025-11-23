@@ -1617,50 +1617,104 @@ const modalAkhir = equityCalc.endingCapital || 0;
     }
 
     // generic: convert HTML string to PDF via html2canvas + jsPDF, paginates if tall
-    async function downloadHTMLAsPDF(htmlString, filename){
-      const container = document.createElement('div');
-      container.style.width = '794px'; container.style.padding = '12px'; container.style.background = '#fff';
-      container.style.position = 'fixed'; container.style.left = '-9999px';
-      container.innerHTML = htmlString;
-      document.body.appendChild(container);
-      await new Promise(r=>setTimeout(r,150));
-      const canvas = await html2canvas(container, { scale:2 });
-      const imgData = canvas.toDataURL('image/png');
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const pxToMm = 0.264583;
-      const imgWidthMm = canvas.width * pxToMm;
-      const imgHeightMm = canvas.height * pxToMm;
-      const scale = (pageWidth - 20) / imgWidthMm;
-      const imgW = imgWidthMm * scale;
-      const imgH = imgHeightMm * scale;
+   async function downloadHTMLAsPDF(htmlString, filename) {
+    // --- KONSTANTA & INISIALISASI ---
+    const SCALE = 2; // Skala yang digunakan html2canvas
+    const margin = 10; // Margin PDF (mm)
+    const pxToMm = 0.264583; // Konversi Pixel ke mm
 
-      if(imgH <= pageHeight - 20){
-        pdf.addImage(imgData, 'PNG', 10, 10, imgW, imgH);
-      } else {
-        // paginate
-        const pageHeightPx = Math.floor((pageHeight - 20) / pxToMm);
-        const canvasW = canvas.width;
-        let srcY = 0;
-        const pageCanvas = document.createElement('canvas');
-        pageCanvas.width = canvasW;
-        pageCanvas.height = pageHeightPx;
-        const pctx = pageCanvas.getContext('2d');
-        while(srcY < canvas.height){
-          pctx.clearRect(0,0,pageCanvas.width,pageCanvas.height);
-          pctx.drawImage(canvas, 0, srcY, pageCanvas.width, pageCanvas.height, 0, 0, pageCanvas.width, pageCanvas.height);
-          const pageData = pageCanvas.toDataURL('image/png');
-          if(srcY > 0) pdf.addPage();
-          pdf.addImage(pageData, 'PNG', 10, 10, imgW, (pageHeightPx * pxToMm) * scale);
-          srcY += pageHeightPx;
+    const container = document.createElement('div');
+    container.style.width = '794px'; container.style.padding = '12px'; container.style.background = '#fff';
+    container.style.position = 'fixed'; container.style.left = '-9999px';
+    container.innerHTML = htmlString;
+    document.body.appendChild(container);
+    await new Promise(r => setTimeout(r, 150));
+
+    const canvas = await html2canvas(container, { scale: SCALE });
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+
+    const pageWidth = pdf.internal.pageSize.getWidth();      // 210 mm
+    const pageHeight = pdf.internal.pageSize.getHeight();     // 297 mm
+
+    // --- PERHITUNGAN SKALA UNTUK PDF ---
+
+    // 1. Hitung faktor penskalaan lebar agar gambar muat dalam margin PDF (A4)
+    // (canvas.width / SCALE * pxToMm) adalah lebar gambar canvas yang sebenarnya dalam mm.
+    const scaleImage = (pageWidth - margin * 2) / (canvas.width / SCALE * pxToMm);
+
+    // 2. Tentukan lebar dan tinggi total gambar di PDF setelah disesuaikan skala
+    const imgWidthMm = pageWidth - margin * 2;
+    const imgHeightMm = (canvas.height / SCALE) * pxToMm * scaleImage; // Tinggi total yang sudah diskalakan
+
+    // 3. Hitung tinggi konten satu halaman PDF dalam *Pixel Canvas* (yang sudah diskalakan)
+    // Ini adalah kunci untuk pemotongan yang akurat
+    const viewportHeightPx = (pageHeight - margin * 2) / pxToMm / scaleImage; // Tinggi dalam pixel (setara SCALE=1)
+
+    // --- LOGIKA EKSPOR PDF ---
+
+    if (imgHeightMm <= pageHeight - margin * 2) {
+        // Kasus 1: Konten muat dalam satu halaman A4
+        pdf.addImage(
+            canvas.toDataURL('image/png'),
+            'PNG',
+            margin, // X
+            margin, // Y
+            imgWidthMm,
+            imgHeightMm
+        );
+    } else {
+        // Kasus 2: Konten memerlukan pagination (lebih dari satu halaman)
+
+        let y = 0; // Posisi vertikal saat ini di canvas (dalam pixel canvas)
+        let page = 0;
+        const totalCanvasHeight = canvas.height;
+
+        while (y < totalCanvasHeight) {
+            if (page > 0) {
+                pdf.addPage();
+            }
+
+            // Tinggi pemotongan (slice) di canvas dalam pixel (SCALE=2)
+            const sliceHeight = Math.min(viewportHeightPx * SCALE, totalCanvasHeight - y);
+
+            // Hitung tinggi slice di PDF dalam mm (proporsional)
+            const sliceHeightMm = (sliceHeight / SCALE) * pxToMm * scaleImage;
+            const slice = document.createElement("canvas");
+            slice.width = canvas.width;
+            slice.height = sliceHeight;
+
+            const ctx = slice.getContext("2d");
+            // Mengambil bagian gambar dari canvas utama
+            ctx.drawImage(
+                canvas,
+                0, y, // Sumber X, Y (posisi mulai di canvas utama)
+                canvas.width, sliceHeight, // Sumber Lebar, Tinggi
+                0, 0, // Tujuan X, Y
+                canvas.width, sliceHeight // Tujuan Lebar, Tinggi
+            );
+
+            const imgData = slice.toDataURL("image/png");
+
+            // Menambahkan slice gambar ke PDF
+            pdf.addImage(
+                imgData,
+                "PNG",
+                margin,                 // X (kiri)
+                margin,                 // Y (atas)
+                imgWidthMm,             // Lebar tetap (sesuai A4)
+                sliceHeightMm           // Tinggi yang proporsional
+            );
+
+            // Pindah posisi Y untuk halaman berikutnya
+            y += viewportHeightPx * SCALE;
+            page++;
         }
-      }
-      pdf.save(filename);
-      container.remove();
     }
 
+    pdf.save(filename);
+    container.remove();
+}
     async function downloadArchivePDF(archiveObj){
       // Archive object already contains monthly snapshot; reuse generateAllReportsHTML by injecting its transactions
       // We'll temporarily set transactions filtered to archiveObj.transactions then generate HTML
@@ -1752,5 +1806,6 @@ appArea.classList.add("with-sidebar");
   </script>
 </body>
 </html>
+
 
 
