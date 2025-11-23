@@ -969,7 +969,7 @@ body {
       byId('archive-month-picker').addEventListener('change', updateJournalPeriodLabel);
       byId('download-all-pdf').addEventListener('click', downloadSelectedMonthPDF);
       byId('show-equity').addEventListener('click', showEquityReportForSelectedMonth);
-
+      
       initChart();
       load();
       renderAll();
@@ -1238,18 +1238,7 @@ body {
   renderArchives();
   updateJournalPeriodLabel();
 }
-function renderKas() {
-  const monthKey = byId("archive-month-picker").value;
 
-  const list = monthKey
-    ? transactions.filter(t => t.date.slice(0, 7) === monthKey)
-    : transactions;
-
-  const balances = computeBalances(list);
-  const kas = balances["A101"] || 0;
-
-  byId("card-kas").textContent = fmt(kas);
-}
 
     /* ========== Clear / Reset ========== */
     function onClearAll(){ if(!confirm('Hapus semua transaksi?')) return; transactions=[]; save(); renderAll(); showMsg('Semua transaksi dihapus','ok'); }
@@ -1617,7 +1606,7 @@ const modalAkhir = equityCalc.endingCapital || 0;
     }
 
     // generic: convert HTML string to PDF via html2canvas + jsPDF, paginates if tall
-   async function downloadHTMLAsPDF(htmlString, filename) {
+    async function downloadHTMLAsPDF(htmlString, filename) {
     // --- KONSTANTA & INISIALISASI ---
     const SCALE = 2; // Skala yang digunakan html2canvas
     const margin = 10; // Margin PDF (mm)
@@ -1680,6 +1669,9 @@ const modalAkhir = equityCalc.endingCapital || 0;
 
             // Hitung tinggi slice di PDF dalam mm (proporsional)
             const sliceHeightMm = (sliceHeight / SCALE) * pxToMm * scaleImage;
+
+            // --- Proses Slicing Gambar ---
+            // Membuat canvas sementara untuk menampung satu halaman
             const slice = document.createElement("canvas");
             slice.width = canvas.width;
             slice.height = sliceHeight;
@@ -1715,6 +1707,7 @@ const modalAkhir = equityCalc.endingCapital || 0;
     pdf.save(filename);
     container.remove();
 }
+
     async function downloadArchivePDF(archiveObj){
       // Archive object already contains monthly snapshot; reuse generateAllReportsHTML by injecting its transactions
       // We'll temporarily set transactions filtered to archiveObj.transactions then generate HTML
@@ -1799,6 +1792,20 @@ toggleBtn.addEventListener("click", () => {
   : "☰";  // panah kiri
 });
 
+function renderKas() {
+  const monthKey = byId("archive-month-picker").value;
+
+  const list = monthKey
+    ? transactions.filter(t => t.date.slice(0, 7) === monthKey)
+    : transactions;
+
+  const balances = computeBalances(list);
+  const kas = balances["A101"] || 0;
+
+  byId("card-kas").textContent = fmt(kas);
+}
+
+
 
 // aktifkan layout sidebar
 appArea.classList.add("with-sidebar");
@@ -1806,6 +1813,3 @@ appArea.classList.add("with-sidebar");
   </script>
 </body>
 </html>
-
-
-
