@@ -1227,9 +1227,30 @@ body {
     function updateChart(rev, exp){ if(!chartRE) return; chartRE.data.datasets[0].data = [rev, exp]; chartRE.update(); }
 
     /* ========== Render All ========== */
-    function renderAll(){
-      renderJurnal(); renderTrial(); populateLedgerSelect(); renderLedger(); renderBalanceSheet(); renderIncomeStatement(); renderSummary(); renderArchives(); updateJournalPeriodLabel();
-    }
+   function renderAll(){
+  renderJurnal();
+  renderTrial();
+  populateLedgerSelect();
+  renderLedger();
+  renderBalanceSheet();
+  renderIncomeStatement();
+  renderKas();        // ← Tambahkan ini
+  renderSummary();
+  renderArchives();
+  updateJournalPeriodLabel();
+}
+function renderKas() {
+  const monthKey = byId("archive-month-picker").value;
+
+  const list = monthKey
+    ? transactions.filter(t => t.date.slice(0, 7) === monthKey)
+    : transactions;
+
+  const balances = computeBalances(list);
+  const kas = balances["A101"] || 0;
+
+  byId("card-kas").textContent = fmt(kas);
+}
 
     /* ========== Clear / Reset ========== */
     function onClearAll(){ if(!confirm('Hapus semua transaksi?')) return; transactions=[]; save(); renderAll(); showMsg('Semua transaksi dihapus','ok'); }
@@ -1732,3 +1753,4 @@ appArea.classList.add("with-sidebar");
   </script>
 </body>
 </html>
+
