@@ -758,6 +758,9 @@ body {
               <option value="beban_internet">Beban Internet</option>
               <option value="beban_lain">Beban Lain-lain</option>
               <option value="prive">Pengambilan untuk kepentingan pribadi</option>
+              <option value="beli_perlengkapan">Pembelian Perlengkapan</option>
+              <option value="beli_peralatan">Pembelian Peralatan</option>
+
             </select>
           </div>
 
@@ -994,6 +997,8 @@ body {
         case 'beban_internet': return { debit:'X504', credit:'A101' };
         case 'beban_lain': return { debit:'X505', credit:'A101' };
         case 'prive': return { debit:'E302', credit:'A101' };
+        case 'beli_perlengkapan': return { debit: 'A104', credit: 'A101' }; // Perlengkapan bertambah, kas berkurang
+        case 'beli_peralatan': return { debit: 'A106', credit: 'A101' }; // Peralatan bertambah, kas berkurang
         default: return null;
       }
     }
