@@ -620,6 +620,11 @@ body {
   padding-left: 0 !important;
 }
 
+#arsip, #archive-list, .download-pdf {
+    position: relative;
+    z-index: 999999 !important;
+}
+
 
   </style>
 </head>
@@ -1409,16 +1414,33 @@ body {
   let totalLiability = 0;
   let totalEquity = 0;
 
-  const assetRows = ACCOUNTS.filter(a => a.type === 'asset').map(a => {
-    const b = balances[a.id] || 0;
-    totalAsset += b;
-    return `
-      <tr>
-        <td style="padding:6px;border:1px solid #ddd">${a.name}</td>
-        <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(b)}</td>
-      </tr>
-    `;
-  }).join('');
+  let currentAssetRows = "";
+let nonCurrentAssetRows = "";
+
+
+// daftar kata kunci aset lancar
+const currentList = ["Kas", "Piutang", "Persediaan Barang Dagang", "Perlengkapan"];
+
+// loop akun aset
+ACCOUNTS.filter(a => a.type === 'asset').forEach(a => {
+  const b = balances[a.id] || 0;
+  totalAsset += b;
+
+  const row = `
+    <tr>
+      <td style="padding:6px;border:1px solid #ddd">${a.name}</td>
+      <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(b)}</td>
+    </tr>
+  `;
+
+  // klasifikasi otomatis
+  if (currentList.some(k => a.name.toLowerCase().includes(k.toLowerCase()))) {
+    currentAssetRows += row;
+  } else {
+    nonCurrentAssetRows += row;
+  }
+});
+
 
   const liabRows = ACCOUNTS.filter(a => a.type === 'liability').map(a => {
     const b = balances[a.id] || 0;
@@ -1474,254 +1496,319 @@ const modalAkhir = equityCalc.endingCapital || 0;
   // =======================================
 
   const html = `
-    <div style="font-family:Arial;padding:18px;color:#111">
+<div style="font-family:Arial;padding:18px;color:#111">
 
-      <h2 style="text-align:center;margin:0">SENJA FOOD</h2>
-      <div style="text-align:center;margin-bottom:12px">
-        LAPORAN KEUANGAN — ${monthLabel}
-      </div>
+  <div style="margin-bottom:2px">
+    LAPORAN KEUANGAN — ${monthLabel}
+  </div>
 
-      <!-- ===================== JURNAL UMUM ===================== -->
-      <h3>Jurnal Umum</h3>
+</div>
 
-      <table style="width:100%;border-collapse:collapse;margin-bottom:14px">
-        <thead>
-          <tr>
-            <th style="padding:6px;border:1px solid #ddd">Tanggal</th>
-            <th style="padding:6px;border:1px solid #ddd">Perkiraan</th>
-            <th style="padding:6px;border:1px solid #ddd;text-align:right">Debit</th>
-            <th style="padding:6px;border:1px solid #ddd;text-align:right">Kredit</th>
-          </tr>
-        </thead>
 
-        <tbody>
-          ${journalRows}
-        </tbody>
 
-        <tfoot>
-          <tr>
-            <td></td>
-            <td style="padding:6px;border:1px solid #ddd;font-weight:bold;text-align:right">TOTAL</td>
-            <td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${fmt(totalDebit)}</td>
-            <td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${fmt(totalCredit)}</td>
-          </tr>
-        </tfoot>
+<!-- ===================== JURNAL UMUM ===================== -->
+<div style="font-family:Arial;padding:18px;color:#111">
+  <center><h3 style="margin:0">Senja Food</h3></center>
+  <center><h3 style="margin:0">Jurnal Umum</h3></center>
+  <center><h4 style="margin:0">Periode ${monthLabel}</h4></center>
+  
+
+  <table style="width:100%;border-collapse:collapse;margin-bottom:14px;margin-top:14px">
+    <thead>
+      <tr>
+        <th style="padding:6px;border:1px solid #ddd">Tanggal</th>
+        <th style="padding:6px;border:1px solid #ddd">Perkiraan</th>
+        <th style="padding:6px;border:1px solid #ddd;text-align:right">Debit</th>
+        <th style="padding:6px;border:1px solid #ddd;text-align:right">Kredit</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      ${journalRows}
+    </tbody>
+
+    <tfoot>
+      <tr>
+        <td></td>
+        <td style="padding:6px;border:1px solid #ddd;font-weight:bold;text-align:right">TOTAL</td>
+        <td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${fmt(totalDebit)}</td>
+        <td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${fmt(totalCredit)}</td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+<!--PAGEBREAK-->
+
+<!-- ===================== LABA RUGI ===================== -->
+<div style="font-family:Arial;padding:18px;color:#111">
+  <center><h3 style="margin:0">Senja Food</h3></center>
+  <center><h3 style="margin:0">Laporan Laba Rugi</h3></center>
+  <center><h4 style="margin:0">Periode ${monthLabel}</h4></center>
+
+  <table style="width:100%;border-collapse:collapse;margin-bottom:14px;margin-top:14px">
+    <tr><td style="padding:6px;border:1px solid #ddd">Total Pendapatan</td>
+        <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(totalRevenue)}</td></tr>
+    <tr><td style="padding:6px;border:1px solid #ddd">Total Beban</td>
+        <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(totalExpense)}</td></tr>
+    <tr><td style="padding:6px;border:1px solid #ddd;font-weight:bold">Laba Bersih</td>
+        <td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${fmt(netIncome)}</td></tr>
+  </table>
+</div>
+
+<!--PAGEBREAK-->
+
+<!-- ===================== PERUBAHAN MODAL ===================== -->
+<div style="font-family:Arial;padding:18px;color:#111">
+  <center><h3 style="margin:0">Senja Food</h3></center>
+  <center><h3 style="margin:0">Laporan Perubahan Modal</h3></center>
+  <center><h4 style="margin:0">Periode ${monthLabel}</h4></center>
+
+  <table style="width:100%;border-collapse:collapse;margin-bottom:14px;margin-top:14px">
+    <tr><td style="padding:6px;border:1px solid #ddd">Modal Awal</td>
+        <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(modalAwal)}</td></tr>
+
+    <tr><td style="padding:6px;border:1px solid #ddd">Setoran Modal</td>
+        <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(setoranModal)}</td></tr>
+
+    <tr><td style="padding:6px;border:1px solid #ddd">Laba (Rugi) Bersih</td>
+        <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(labaBersih)}</td></tr>
+
+    <tr><td style="padding:6px;border:1px solid #ddd">Prive</td>
+        <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(prive)}</td></tr>
+
+    <tr><td style="padding:6px;border:1px solid #ddd;font-weight:bold">Modal Akhir</td>
+        <td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${fmt(modalAkhir)}</td></tr>
+  </table>
+</div>
+
+<!--PAGEBREAK-->
+
+<!-- ===================== NERACA ===================== -->
+<div style="font-family:Arial;padding:18px;color:#111">
+
+  <center><h3 style="margin:0">Senja Food</h3></center>
+  <center><h3 style="margin:0">Laporan Posisi Keuangan</h3></center>
+  <center><h4 style="margin-top: 8px">Per ${getLastDateOfMonth(monthKey)}</h4></center>
+
+  <div style="display:flex;gap:20px">
+
+    <!-- ===================== ASET ===================== -->
+    <div style="flex:1">
+      <strong style="font-size:15px">Aset</strong>
+      <table style="width:100%;border-collapse:collapse;margin-top:10px;font-size:14px">
+
+        <!-- ASET LANCAR -->
+        <tr>
+          <td colspan="2" style="padding:6px;border:1px solid #ddd;font-weight:bold;background:#f4f4f4">
+            Aset Lancar
+          </td>
+        </tr>
+        ${currentAssetRows}
+
+        <!-- ASET TIDAK LANCAR -->
+        <tr>
+          <td colspan="2" style="padding:6px;border:1px solid #ddd;font-weight:bold;background:#f4f4f4">
+            Aset Tidak Lancar
+          </td>
+        </tr>
+        ${nonCurrentAssetRows}
+
+        <!-- TOTAL ASET -->
+        <tr>
+          <td style="padding:6px;border:1px solid #ddd;font-weight:bold">TOTAL ASET</td>
+          <td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${fmt(totalAsset)}</td>
+        </tr>
       </table>
-
-
-      <!-- ===================== LABA RUGI ===================== -->
-      <h3>Laporan Laba Rugi</h3>
-      <table style="width:100%;border-collapse:collapse;margin-bottom:14px">
-        <tr><td style="padding:6px;border:1px solid #ddd">Total Pendapatan</td>
-            <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(totalRevenue)}</td></tr>
-        <tr><td style="padding:6px;border:1px solid #ddd">Total Beban</td>
-            <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(totalExpense)}</td></tr>
-        <tr><td style="padding:6px;border:1px solid #ddd;font-weight:bold">Laba Bersih</td>
-            <td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${fmt(netIncome)}</td></tr>
-      </table>
-
-     <h3>Laporan Perubahan Modal</h3>
-
-<table style="width:100%;border-collapse:collapse;margin-bottom:14px">
-  <tr>
-    <td style="padding:6px;border:1px solid #ddd">Modal Awal</td>
-    <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(modalAwal)}</td>
-  </tr>
-  <tr>
-    <td style="padding:6px;border:1px solid #ddd">Setoran Modal</td>
-    <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(setoranModal)}</td>
-  </tr>
-  <tr>
-    <td style="padding:6px;border:1px solid #ddd">Laba (Rugi) Bersih</td>
-    <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(labaBersih)}</td>
-  </tr>
-  <tr>
-    <td style="padding:6px;border:1px solid #ddd">Prive</td>
-    <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(prive)}</td>
-  </tr>
-  <tr>
-    <td style="padding:6px;border:1px solid #ddd;font-weight:bold">Modal Akhir</td>
-    <td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${fmt(modalAkhir)}</td>
-  </tr>
-</table>
- 
-      <!-- ===================== NERACA ===================== -->
-      <h3>Neraca Keuangan</h3>
-
-      <div style="display:flex;gap:16px">
-
-        <!-- ASEt -->
-        <div style="flex:1">
-          <strong>Aset</strong>
-          <table style="width:100%;border-collapse:collapse;margin-top:6px">
-            ${assetRows}
-            <tr>
-              <td style="padding:6px;border:1px solid #ddd;font-weight:bold">TOTAL ASET</td>
-              <td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${fmt(totalAsset)}</td>
-            </tr>
-          </table>
-        </div>
-
-        <!-- KEWAJIBAN + EKUITAS -->
-        <div style="flex:1">
-          <strong>Kewajiban</strong>
-          <table style="width:100%;border-collapse:collapse;margin-top:6px">
-            ${liabRows}
-            <tr>
-              <td style="padding:6px;border:1px solid #ddd;font-weight:bold">TOTAL KEWAJIBAN</td>
-              <td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${fmt(totalLiability)}</td>
-            </tr>
-          </table>
-
-          <strong>Ekuitas</strong>
-          <table style="width:100%;border-collapse:collapse;margin-top:6px">
-            ${equityRows}
-            <tr>
-              <td style="padding:6px;border:1px solid #ddd">Laba (Rugi) Bersih</td>
-              <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(netIncome)}</td>
-            </tr>
-            <tr>
-              <td style="padding:6px;border:1px solid #ddd;font-weight:bold">TOTAL EKUITAS</td>
-              <td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${fmt(totalEquity)}</td>
-            </tr>
-            <tr>
-              <td style="padding:6px;border:1px solid #ddd;font-weight:bold">TOTAL KEWAJIBAN + EKUITAS</td>
-              <td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${fmt(totalLiability + totalEquity)}</td>
-            </tr>
-          </table>
-        </div>
-
-      </div>
-
-      <div style="margin-top:16px;font-size:12px;color:#666">
-        Dicetak dari Senja Food Accounting — ${new Date().toLocaleString()}
-      </div>
-
     </div>
-  `;
+
+    <!-- ===================== KEWAJIBAN & EKUITAS ===================== -->
+    <div style="flex:1">
+
+      <strong style="font-size:15px">Kewajiban</strong>
+      <table style="width:100%;border-collapse:collapse;margin-top:10px;font-size:14px">
+        ${liabRows}
+        <tr>
+          <td style="padding:6px;border:1px solid #ddd;font-weight:bold">TOTAL KEWAJIBAN</td>
+          <td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${fmt(totalLiability)}</td>
+        </tr>
+      </table>
+
+      <strong style="font-size:15px;display:block;margin-top:16px">Ekuitas</strong>
+      <table style="width:100%;border-collapse:collapse;margin-top:6px;font-size:14px">
+        ${equityRows}
+        <tr>
+          <td style="padding:6px;border:1px solid #ddd">Laba (Rugi) Bersih</td>
+          <td style="padding:6px;border:1px solid #ddd;text-align:right">${fmt(netIncome)}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px;border:1px solid #ddd;font-weight:bold">TOTAL EKUITAS</td>
+          <td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${fmt(totalEquity)}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px;border:1px solid #ddd;font-weight:bold">TOTAL KEWAJIBAN + EKUITAS</td>
+          <td style="padding:6px;border:1px solid #ddd;text-align:right;font-weight:bold">${fmt(totalLiability + totalEquity)}</td>
+        </tr>
+      </table>
+    </div>
+
+  </div>
+
+</div>
+
+  <div style="margin-top:16px;font-size:12px;color:#666">
+    Dicetak dari Senja Food Accounting — ${new Date().toLocaleString()}
+  </div>
+</div>
+`;
 
   return html;
 }
 
-    async function downloadSelectedMonthPDF(){
-      const month = byId('archive-month-picker').value;
-      if(!month) return showMsg('Pilih bulan di pojok kanan atas terlebih dahulu', 'error');
-      const html = generateAllReportsHTML(month);
-      await downloadHTMLAsPDF(html, `Laporan_SenjaFood_${month}.pdf`);
-    }
+   async function downloadSelectedMonthPDF() {
+    const month = byId('archive-month-picker').value;
+    if (!month) return showMsg('Pilih bulan terlebih dahulu', 'error');
 
-    // generic: convert HTML string to PDF via html2canvas + jsPDF, paginates if tall
-    async function downloadHTMLAsPDF(htmlString, filename) {
-    // --- KONSTANTA & INISIALISASI ---
-    const SCALE = 2; // Skala yang digunakan html2canvas
-    const margin = 10; // Margin PDF (mm)
-    const pxToMm = 0.264583; // Konversi Pixel ke mm
+    const html = generateAllReportsHTML(month);
 
-    const container = document.createElement('div');
-    container.style.width = '794px'; container.style.padding = '12px'; container.style.background = '#fff';
-    container.style.position = 'fixed'; container.style.left = '-9999px';
-    container.innerHTML = htmlString;
-    document.body.appendChild(container);
-    await new Promise(r => setTimeout(r, 150));
+    // Pisahkan bagian laporan berdasarkan PAGEBREAK
+    const sections = html.split('<!--PAGEBREAK-->');
 
-    const canvas = await html2canvas(container, { scale: SCALE });
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p', 'mm', 'a4');
 
-    const pageWidth = pdf.internal.pageSize.getWidth();      // 210 mm
-    const pageHeight = pdf.internal.pageSize.getHeight();     // 297 mm
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margin = 10;
+    const contentWidth = pageWidth - margin * 2;
 
-    // --- PERHITUNGAN SKALA UNTUK PDF ---
+    for (let s = 0; s < sections.length; s++) {
+        const div = document.createElement('div');
+        div.style.width = "794px";
+        div.style.padding = "12px";
+        div.style.background = "#fff";
+        div.style.position = "fixed";
+        div.style.left = "-9999px";
+        div.innerHTML = sections[s];
+        document.body.appendChild(div);
 
-    // 1. Hitung faktor penskalaan lebar agar gambar muat dalam margin PDF (A4)
-    // (canvas.width / SCALE * pxToMm) adalah lebar gambar canvas yang sebenarnya dalam mm.
-    const scaleImage = (pageWidth - margin * 2) / (canvas.width / SCALE * pxToMm);
+        await new Promise(r => setTimeout(r, 80));
 
-    // 2. Tentukan lebar dan tinggi total gambar di PDF setelah disesuaikan skala
-    const imgWidthMm = pageWidth - margin * 2;
-    const imgHeightMm = (canvas.height / SCALE) * pxToMm * scaleImage; // Tinggi total yang sudah diskalakan
+        const canvas = await html2canvas(div, { scale: 2 });
+        const imgHeightMm = canvas.height * (contentWidth / canvas.width);
 
-    // 3. Hitung tinggi konten satu halaman PDF dalam *Pixel Canvas* (yang sudah diskalakan)
-    // Ini adalah kunci untuk pemotongan yang akurat
-    const viewportHeightPx = (pageHeight - margin * 2) / pxToMm / scaleImage; // Tinggi dalam pixel (setara SCALE=1)
+        let remainingHeight = imgHeightMm;
+        let positionY = 0;
 
-    // --- LOGIKA EKSPOR PDF ---
+        // MULTI-PAGE CUTTER
+        while (remainingHeight > 0) {
+            const canvasPage = document.createElement("canvas");
+            const ctx = canvasPage.getContext("2d");
 
-    if (imgHeightMm <= pageHeight - margin * 2) {
-        // Kasus 1: Konten muat dalam satu halaman A4
-        pdf.addImage(
-            canvas.toDataURL('image/png'),
-            'PNG',
-            margin, // X
-            margin, // Y
-            imgWidthMm,
-            imgHeightMm
-        );
-    } else {
-        // Kasus 2: Konten memerlukan pagination (lebih dari satu halaman)
+            // pixel height of A4 page (converted)
+            const pagePixelHeight = (pageHeight - margin * 2) * (canvas.width / contentWidth);
 
-        let y = 0; // Posisi vertikal saat ini di canvas (dalam pixel canvas)
-        let page = 0;
-        const totalCanvasHeight = canvas.height;
+            canvasPage.width = canvas.width;
+            canvasPage.height = Math.min(pagePixelHeight, canvas.height - positionY);
 
-        while (y < totalCanvasHeight) {
-            if (page > 0) {
-                pdf.addPage();
-            }
-
-            // Tinggi pemotongan (slice) di canvas dalam pixel (SCALE=2)
-            const sliceHeight = Math.min(viewportHeightPx * SCALE, totalCanvasHeight - y);
-
-            // Hitung tinggi slice di PDF dalam mm (proporsional)
-            const sliceHeightMm = (sliceHeight / SCALE) * pxToMm * scaleImage;
-
-            // --- Proses Slicing Gambar ---
-            // Membuat canvas sementara untuk menampung satu halaman
-            const slice = document.createElement("canvas");
-            slice.width = canvas.width;
-            slice.height = sliceHeight;
-
-            const ctx = slice.getContext("2d");
-            // Mengambil bagian gambar dari canvas utama
             ctx.drawImage(
                 canvas,
-                0, y, // Sumber X, Y (posisi mulai di canvas utama)
-                canvas.width, sliceHeight, // Sumber Lebar, Tinggi
-                0, 0, // Tujuan X, Y
-                canvas.width, sliceHeight // Tujuan Lebar, Tinggi
+                0,
+                positionY,
+                canvas.width,
+                canvasPage.height,
+                0,
+                0,
+                canvas.width,
+                canvasPage.height
             );
 
-            const imgData = slice.toDataURL("image/png");
+            const imgData = canvasPage.toDataURL("image/png");
 
-            // Menambahkan slice gambar ke PDF
-            pdf.addImage(
-                imgData,
-                "PNG",
-                margin,                 // X (kiri)
-                margin,                 // Y (atas)
-                imgWidthMm,             // Lebar tetap (sesuai A4)
-                sliceHeightMm           // Tinggi yang proporsional
-            );
+            if (!(s === 0 && positionY === 0)) pdf.addPage();
 
-            // Pindah posisi Y untuk halaman berikutnya
-            y += viewportHeightPx * SCALE;
-            page++;
+            pdf.addImage(imgData, "PNG", margin, margin, contentWidth, (canvasPage.height * contentWidth) / canvas.width);
+
+            positionY += pagePixelHeight;
+            remainingHeight -= pageHeight - margin * 2;
         }
+
+        div.remove();
     }
 
-    pdf.save(filename);
-    container.remove();
+    pdf.save(`Laporan_SenjaFood_${month}.pdf`);
 }
 
-    async function downloadArchivePDF(archiveObj){
-      // Archive object already contains monthly snapshot; reuse generateAllReportsHTML by injecting its transactions
-      // We'll temporarily set transactions filtered to archiveObj.transactions then generate HTML
-      const origTx = transactions;
-      transactions = archiveObj.transactions.slice();
-      const html = generateAllReportsHTML(archiveObj.month);
-      await downloadHTMLAsPDF(html, `Laporan_SenjaFood_${archiveObj.month}.pdf`);
-      transactions = origTx;
+   async function downloadArchivePDF(archiveObj){
+    const origTx = transactions;
+    transactions = archiveObj.transactions.slice();
+
+    const html = generateAllReportsHTML(archiveObj.month);
+
+    // Pisahkan halaman pakai PAGEBREAK
+    const sections = html.split("<!--PAGEBREAK-->");
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p','mm','a4');
+
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margin = 10;
+    const contentWidth = pageWidth - margin * 2;
+
+    for (let s = 0; s < sections.length; s++) {
+        const div = document.createElement("div");
+        div.style.width = "794px";
+        div.style.padding = "12px";
+        div.style.position = "fixed";
+        div.style.left = "-9999px";
+        div.style.background = "#fff";
+        div.innerHTML = sections[s];
+        document.body.appendChild(div);
+
+        await new Promise(r => setTimeout(r, 50));
+
+        const canvas = await html2canvas(div, { scale: 2 });
+
+        const imgHeightMm = canvas.height * (contentWidth / canvas.width);
+
+        let remainingHeight = imgHeightMm;
+        let y = 0;
+
+        // Multi-page
+        while (remainingHeight > 0) {
+            if (!(s === 0 && y === 0)) pdf.addPage();
+
+            const pagePx = (pageHeight - margin*2) * (canvas.width / contentWidth);
+            const sliceHeight = Math.min(pagePx, canvas.height - y);
+
+            const tempCanvas = document.createElement("canvas");
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = sliceHeight;
+            tempCanvas.getContext("2d").drawImage(
+                canvas, 0, y,
+                canvas.width, sliceHeight,
+                0, 0,
+                canvas.width, sliceHeight
+            );
+
+            pdf.addImage(
+                tempCanvas.toDataURL("image/png"),
+                "PNG", margin, margin, contentWidth,
+                (sliceHeight * contentWidth) / canvas.width
+            );
+
+            y += pagePx;
+            remainingHeight -= pageHeight - margin*2;
+        }
+
+        div.remove();
     }
+
+    pdf.save(`Laporan_SenjaFood_${archiveObj.month}.pdf`);
+    transactions = origTx;
+}
+
 
     /* ========== Rendering archives list handled earlier ========== */
     // renderArchives implemented earlier; ensure it's called in renderAll
@@ -1814,6 +1901,22 @@ function renderKas() {
 
 // aktifkan layout sidebar
 appArea.classList.add("with-sidebar");
+
+
+/* ========== Helper: tanggal akhir bulan ========== */
+function getLastDateOfMonth(ym) {
+    if (!ym) return "-";
+    const [year, month] = ym.split("-").map(Number);
+
+    // Trik: tanggal 0 pada bulan berikutnya = hari terakhir bulan ini
+    const last = new Date(year, month, 0);
+    return last.toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+    });
+}
+
 
   </script>
 </body>
