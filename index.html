@@ -1562,7 +1562,7 @@ const modalAkhir = equityCalc.endingCapital || 0;
 <div style="font-family:Arial;padding:18px;color:#111">
   <center><h3 style="margin:0">Senja Food</h3></center>
   <center><h3 style="margin:0">Laporan Perubahan Modal</h3></center>
-  <center><h4 style="margin:0">Periode ${monthLabel}</h4></center>
+  <center><h4 style="margin:0">Untuk Periode yang Berakhir pada ${getLastDateOfMonth(monthKey)}</h4></center>
 
   <table style="width:100%;border-collapse:collapse;margin-bottom:14px;margin-top:14px">
     <tr><td style="padding:6px;border:1px solid #ddd">Modal Awal</td>
@@ -1921,3 +1921,4 @@ function getLastDateOfMonth(ym) {
   </script>
 </body>
 </html>
+
